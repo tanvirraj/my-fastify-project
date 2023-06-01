@@ -1,0 +1,44 @@
+version: '3.6'
+
+services:
+  covid-green-db:
+    container_name: covid-green-db
+    image: postgres:10.4-alpine
+    environment:
+      - POSTGRES_USER=contact_tracing
+      - POSTGRES_PASSWORD=contact_tracing
+      - POSTGRES_DB=contact_tracing
+    ports:
+      - 5432:5432
+    volumes:
+      - covid-green-pg-data:/var/lib/postgresql/data
+
+  covid-green-db-migrations:
+    container_name: covid-green-db-migrations
+    build:
+      context: .
+      dockerfile: Dockerfile-migrate
+    environment:
+      - DB_HOST=covid-green-db
+      - DB_READ_HOST=covid-green-db
+    volumes:
+      - ${PWD}:/covid-green
+    command: ["npm","run","db:migrate:until-done"]
+
+  covid-green-api:
+    container_name: covid-green-api
+    build:
+      context: .
+      dockerfile: Dockerfile-api
+    environment:
+      - DB_HOST=covid-green-db
+      - DB_READ_HOST=covid-green-db
+    ports:
+      - 5000:5000
+    volumes:
+      - ${PWD}:/covid-green
+    command: ["npm","run","api:start:dev:when-ready"]
+
+volumes:
+  covid-green-pg-data:
+    external: false
